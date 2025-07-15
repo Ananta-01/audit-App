@@ -1,12 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 
 export default function AuditSummaryScreen({ route, navigation }: any) {
-  // Get audit data passed from previous screen
   const { audit } = route.params;
 
-  // Function to save audit to AsyncStorage
   const saveToStorage = async () => {
     const audits = JSON.parse((await AsyncStorage.getItem('audits')) || '[]');
     audits.push(audit);
@@ -14,27 +12,17 @@ export default function AuditSummaryScreen({ route, navigation }: any) {
     navigation.replace('AuditHistory');
   };
 
-  // Convert 'checks' object into readable string of selected items
-  const checkedItems = Object.entries(audit.checks)
-    .filter(([_, value]) => value)
-    .map(([key]) => key.charAt(0).toUpperCase() + key.slice(1)) // Capitalize
-    .join(', ') || 'None';
+  const checkedItems = audit.checkedItems.map((k: string) => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || 'None';
 
   return (
     <View style={styles.container}>
-      {/* Display summary card */}
       <View style={styles.card}>
-        <Text style={styles.label}>Rating:</Text>
-        <Text style={styles.value}>{audit.rating}</Text>
-
-        <Text style={styles.label}>Checked Items:</Text>
-        <Text style={styles.value}>{checkedItems}</Text>
-
+        {!!audit.image && <Image source={{ uri: audit.image }} style={styles.preview} />}
+        <Text style={styles.label}>Rating: <Text style={styles.value}>{audit.rating}</Text></Text>
+        <Text style={styles.label}>Checked Items: <Text style={styles.value}>{checkedItems}</Text></Text>
         <Text style={styles.label}>Comments:</Text>
         <Text style={styles.value}>{audit.comment}</Text>
       </View>
-
-      {/* Confirm and Save Button */}
       <TouchableOpacity style={styles.saveButton} onPress={saveToStorage}>
         <Text style={styles.saveButtonText}>Confirm and Save</Text>
       </TouchableOpacity>
@@ -99,5 +87,10 @@ saveButtonText: {
   fontSize: 16,
   fontWeight: 'bold',
 },
-
+ preview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
 });

@@ -1,95 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  FlatList,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { View, FlatList, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRole } from '../context/RoleContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import formatTimestamp from '../utils/Helper';
 
-// Type for individual audit item
-type Audit = {
-  timestamp: string;
-  rating: string;
-  checkedItems: string[];
-  comment: string;
-};
+type Audit = { timestamp: string; rating: string; checkedItems: string[]; comment: string; image?: string };
 
 export default function AuditHistoryScreen({ navigation }: any) {
-  const [audits, setAudits] = useState<Audit[]>([]);
   const { role } = useRole();
-
-  // State for delete confirmation modal
+  const [audits, setAudits] = useState<Audit[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Load audit data from AsyncStorage
-  const loadAudits = async () => {
-    const saved = await AsyncStorage.getItem('audits');
-    setAudits(JSON.parse(saved || '[]'));
-  };
+  const loadAudits = async () => setAudits(JSON.parse((await AsyncStorage.getItem('audits')) || '[]'));
 
-  // Delete a single audit and update storage
-  const deleteAudit = async (index: number) => {
-    const updated = audits.filter((_, i) => i !== index);
+  const deleteAudit = async (idx: number) => {
+    const updated = audits.filter((_, i) => i !== idx);
     await AsyncStorage.setItem('audits', JSON.stringify(updated));
     setAudits(updated);
   };
 
-  // Load audits every time screen gains focus
-  useEffect(() => {
-    const focus = navigation.addListener('focus', loadAudits);
-    return focus;
-  }, [navigation]);
+  useEffect(() => navigation.addListener('focus', loadAudits), [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Title */}
       <Text style={styles.title}>Audit History</Text>
-
-      {/* Welcome Message */}
-      <Text style={{ marginLeft: 10, fontSize: 16, marginBottom: 10 }}>
-        {`Hi ${role}, Welcome back`}
-      </Text>
-
-      {/* Audit List */}
-      <FlatList<Audit>
+      <FlatList
         data={audits}
         keyExtractor={(_, i) => i.toString()}
         renderItem={({ item, index }) => (
           <View style={styles.card}>
             <Text style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Text>
+            {!!item.image && <Image source={{ uri: item.image }} style={styles.thumb} />}
+            <Text style={styles.label}>Rating: <Text style={styles.value}>{item.rating}</Text></Text>
+            <Text style={styles.label}>
+  Checked Items:{' '}
+  <Text style={styles.value}>
+    {Array.isArray(item.checkedItems) && item.checkedItems.length > 0
+      ? item.checkedItems.join(', ')
+      : 'None'}
+  </Text>
+</Text>
 
-            <Text style={styles.label}>Rating:</Text>
-            <Text style={styles.value}>{item.rating}</Text>
-
-            <Text style={styles.label}>Audit:</Text>
-            <Text style={styles.value}>{item.checkedItems?.join(', ') || 'None'}</Text>
-
-            <Text style={styles.label}>Comment:</Text>
-            <Text style={styles.value}>{item.comment}</Text>
-
-            {/* Admin-only delete icon */}
+            <Text style={styles.label}>Comment: <Text style={styles.value}>{item.comment}</Text></Text>
             {role === 'Admin' && (
-              <TouchableOpacity
-                style={styles.deleteIcon}
-                onPress={() => {
-                  setSelectedIndex(index);
-                  setShowConfirm(true);
-                }}
-              >
+              <TouchableOpacity style={styles.deleteIcon} onPress={() => { setSelectedIndex(index); setShowConfirm(true); }}>
                 <Text style={styles.deleteIconText}>✕</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No audits found.</Text>}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        ListEmptyComponent={<Text style={styles.empty}>No audits yet.</Text>}
       />
 
       {/* Floating Action Buttons */}
@@ -181,6 +143,12 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: 'bold',
     marginTop: 4,
+  },
+    thumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   value: {
     fontSize: 16,

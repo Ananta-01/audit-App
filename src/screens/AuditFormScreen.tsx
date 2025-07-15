@@ -6,107 +6,101 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
+import { launchCamera } from 'react-native-image-picker';
 
 export default function AuditFormScreen({ navigation }: any) {
-  // Multi-step form state
   const [step, setStep] = useState(1);
-
-  // Audit form state
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    rating: string;
+    comment: string;
+    checks: Record<string, boolean>;
+    image: string;
+  }>({
     rating: '',
-    checks: { safety: false, cleanliness: false },
     comment: '',
+    checks: { safety: false, cleanliness: false },
+    image: '',
   });
 
-  // Handle step validation and go to next
   const nextStep = () => {
-    if (step === 1 && (!form.rating || form.rating === '0')) {
-      Alert.alert('Please select a rating before continuing.');
-      return;
-    }
-
-    if (
-      step === 2 &&
-      !form.checks.safety &&
-      !form.checks.cleanliness
-    ) {
-      Alert.alert('Please select at least one checkbox.');
-      return;
-    }
-
-    if (step === 3 && !form.comment.trim()) {
-      Alert.alert('Please enter a comment before continuing.');
-      return;
-    }
-
-    setStep((prev) => prev + 1);
+    if (step === 1 && (!form.rating || form.rating === '0'))
+      return Alert.alert('Please select a rating.');
+    if (step === 2 && !form.checks.safety && !form.checks.cleanliness)
+      return Alert.alert('Select at least one option.');
+    if (step === 3 && !form.comment.trim())
+      return Alert.alert('Please enter a comment.');
+    setStep(p => p + 1);
   };
 
-  // Move to previous step
-  const prevStep = () => setStep((prev) => prev - 1);
-
-  // Final submission handler
   const handleSubmit = () => {
-    const selectedChecks = Object.entries(form.checks)
-      .filter(([_, value]) => value)
-      .map(([key]) => key.charAt(0).toUpperCase() + key.slice(1)); // Capitalize labels
-
     const newAudit = {
       ...form,
-      checkedItems: selectedChecks,
-      timestamp: new Date().toLocaleString(), // human-readable format
+      timestamp: new Date().toLocaleString(),
+      checkedItems: Object.entries(form.checks)
+        .filter(([_, v]) => v)
+        .map(([k]) => k),
     };
-
     navigation.navigate('AuditSummary', { audit: newAudit });
   };
 
-  // Handle rating via star tap
-  const handleStarPress = (value: number) => {
-    setForm((prev) => ({ ...prev, rating: value.toString() }));
+  const captureImage = () => {
+    launchCamera({ mediaType: 'photo' }, res => {
+      if (res.assets?.[0]?.uri) {
+        const imageUri = res.assets[0].uri;
+        setForm(prev => ({
+          ...prev,
+          image: imageUri,
+        }));
+      }
+    });
   };
 
   return (
     <View style={styles.container}>
-      {/* Step 1: Rating Stars */}
       {step === 1 && (
         <>
           <Text style={styles.label}>Rate the Environment:</Text>
           <View style={styles.starRow}>
-            {[1, 2, 3, 4, 5].map((num) => (
-              <TouchableOpacity key={num} onPress={() => handleStarPress(num)}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <TouchableOpacity
+                key={n}
+                onPress={() => setForm(p => ({ ...p, rating: n.toString() }))}
+              >
                 <Text style={styles.star}>
-                  {parseInt(form.rating) >= num ? '⭐' : '☆'}
+                  {+form.rating >= n ? '⭐' : '☆'}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
+          <TouchableOpacity onPress={captureImage} style={styles.imageButton}>
+            <Text style={styles.imageButtonText}>
+              {form.image ? 'Retake Photo' : 'Capture Photo'}
+            </Text>
+          </TouchableOpacity>
+          {!!form.image && (
+            <Image source={{ uri: form.image }} style={styles.preview} />
+          )}
         </>
       )}
-
-      {/* Step 2: Checkbox Section */}
       {step === 2 && (
         <>
           <Text style={styles.label}>Check applicable items:</Text>
-          {Object.keys(form.checks).map((key) => (
-            <View style={styles.checkboxRow} key={key}>
+          {['safety', 'cleanliness'].map(k => (
+            <View key={k} style={styles.checkboxRow}>
               <CheckBox
-                value={form.checks[key as keyof typeof form.checks]}
-                onValueChange={(val) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    checks: { ...prev.checks, [key]: val },
-                  }))
+                value={form.checks[k]}
+                onValueChange={v =>
+                  setForm(p => ({ ...p, checks: { ...p.checks, [k]: v } }))
                 }
               />
-              <Text style={styles.checkboxLabel}>{key}</Text>
+              <Text style={styles.checkboxLabel}>{k}</Text>
             </View>
           ))}
         </>
       )}
-
-      {/* Step 3: Comments Section */}
       {step === 3 && (
         <>
           <Text style={styles.label}>Comments:</Text>
@@ -114,26 +108,27 @@ export default function AuditFormScreen({ navigation }: any) {
             style={styles.input}
             multiline
             numberOfLines={4}
-            placeholder="Write your comments here..."
+            placeholder="Enter comments"
             value={form.comment}
-            onChangeText={(val) => setForm({ ...form, comment: val })}
+            onChangeText={v => setForm(p => ({ ...p, comment: v }))}
           />
         </>
       )}
-
-      {/* Navigation Buttons */}
       <View style={styles.buttonRow}>
         {step > 1 && (
-          <TouchableOpacity onPress={prevStep} style={styles.navButton}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => setStep(p => p - 1)}
+          >
             <Text style={styles.navButtonText}>Previous</Text>
           </TouchableOpacity>
         )}
         {step < 3 ? (
-          <TouchableOpacity onPress={nextStep} style={styles.navButton}>
+          <TouchableOpacity style={styles.navButton} onPress={nextStep}>
             <Text style={styles.navButtonText}>Next</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={handleSubmit} style={styles.navButton}>
+          <TouchableOpacity style={styles.navButton} onPress={handleSubmit}>
             <Text style={styles.navButtonText}>Submit</Text>
           </TouchableOpacity>
         )}
@@ -159,7 +154,25 @@ const styles = StyleSheet.create({
   },
   star: {
     fontSize: 36,
-    marginRight: 10,
+    marginRight: 8,
+  },
+  imageButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  imageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  preview: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -167,8 +180,8 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   checkboxLabel: {
-    fontSize: 16,
     marginLeft: 8,
+    fontSize: 16,
     textTransform: 'capitalize',
   },
   input: {

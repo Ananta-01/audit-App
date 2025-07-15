@@ -1,107 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Image,
-    TextInput,
-    TouchableOpacity,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRole } from '../context/RoleContext';
 
-// Define available roles and their type
 const roles = ['Admin', 'Auditor', 'Viewer'] as const;
 type RoleType = typeof roles[number];
 
 export default function LoginScreen({ navigation }: any) {
-    const { setRole } = useRole(); // Context to store selected role
-    const [error, setError] = useState('');
-    const [selectedRole, setSelectedRole] = useState<RoleType>('Auditor'); // Default role
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+  const { setRole } = useRole();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<RoleType>('Auditor');
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-        console.log('✅ LoginScreen mounted');
-    }, []);
+  const onConfirm = () => {
+    if (!username.trim() || !password.trim()) {
+      setError('Username and password cannot be empty');
+      return;
+    }
+    if (password.length < 4) {
+      setError('Password must be at least 4 characters');
+      return;
+    }
+    setError('');
+    setRole(selectedRole);
+    navigation.replace('AuditHistory');
+  };
 
-    // Handle Confirm button press
-    const onConfirm = () => {
-        if (!username.trim() || !password.trim()) {
-            setError('Username and password cannot be empty');
-            return;
-        }
-
-        if (password.length < 4) {
-            setError('Password must be at least 4 characters');
-            return;
-        }
-
-        // Reset errors and proceed
-        setError('');
-        setRole(selectedRole);
-        navigation.replace('AuditHistory');
-    };
-
-    return (
-        <View style={styles.container}>
-            {/* App Logo */}
-            <Image
-                source={require('../assets/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-            />
-
-            {/* Title */}
-            <Text style={styles.title}>Select your role</Text>
-
-            {/* Role Selection (radio buttons) */}
-            <View style={styles.radioContainer}>
-                {roles.map((role) => (
-                    <TouchableOpacity
-                        key={role}
-                        style={styles.radioItem}
-                        onPress={() => setSelectedRole(role)}
-                    >
-                        <View style={styles.outerCircle}>
-                            {selectedRole === role && <View style={styles.innerCircle} />}
-                        </View>
-                        <Text style={styles.radioText}>{role}</Text>
-                    </TouchableOpacity>
-                ))}
+  return (
+    <View style={styles.container}>
+      <Image source={require('../assets/logo.png')} style={styles.logo} />
+      <Text style={styles.title}>Select your role</Text>
+      <View style={styles.radioContainer}>
+        {roles.map((role) => (
+          <TouchableOpacity key={role} style={styles.radioItem} onPress={() => setSelectedRole(role)}>
+            <View style={styles.outerCircle}>
+              {selectedRole === role && <View style={styles.innerCircle} />}
             </View>
-
-            {/* Username Input */}
-            <TextInput
-                placeholder="Username"
-                style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-            />
-
-            {/* Password Input */}
-            <TextInput
-                placeholder="Password"
-                style={styles.input}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-            />
-
-            {/* Validation Error */}
-            {error ? (
-                <Text style={styles.errorText}>{error}</Text>
-            ) : null}
-
-            {/* Confirm Button */}
-            <TouchableOpacity
-                style={[styles.button, (!username || !password) && { opacity: 0.5 }]}
-                onPress={onConfirm}
-                disabled={!username || !password}
-            >
-                <Text style={styles.buttonText}>Confirm</Text>
-            </TouchableOpacity>
-        </View>
-    );
+            <Text style={styles.radioText}>{role}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <TextInput placeholder="Username" style={styles.input} value={username} onChangeText={setUsername} />
+      <TextInput placeholder="Password" style={styles.input} secureTextEntry value={password} onChangeText={setPassword} />
+      {!!error && <Text style={styles.errorText}>{error}</Text>}
+      <TouchableOpacity style={[styles.button, (!username || !password) && { opacity: 0.5 }]} onPress={onConfirm} disabled={!username || !password}>
+        <Text style={styles.buttonText}>Confirm</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

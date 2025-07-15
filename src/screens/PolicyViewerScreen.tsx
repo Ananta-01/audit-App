@@ -1,37 +1,20 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PolicyViewerScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with back button and title */}
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>📄 Audit Policy</Text>
-        <View style={{ width: 60 }} /> {/* Spacer for alignment */}
+        <View style={{ width: 60 }} />
       </View>
-
-      {/* Embedded Policy WebView */}
-      <WebView
-        source={{ uri: 'https://example.com/policy' }}
-        onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
-        style={styles.webview}
-      />
-
-      {/* Loading spinner while WebView is loading */}
+      <WebView source={{ uri: 'https://example.com/policy' }} onLoadStart={() => setLoading(true)} onLoadEnd={() => setLoading(false)} style={styles.webview} />
       {loading && (
         <View style={styles.loaderOverlay}>
           <ActivityIndicator size="large" color="#007AFF" />
